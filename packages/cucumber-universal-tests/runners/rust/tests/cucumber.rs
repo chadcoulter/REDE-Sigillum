@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::{collections::VecDeque, fs, path::PathBuf};
 
 use cucumber::{given, then, when, World as _};
 use serde_json::Value;
@@ -29,6 +29,11 @@ struct World {
     galethog_elements: Option<Vec<Value>>,
     internal_sigil_element: Option<Value>,
     resolved_internal_value: Option<String>,
+
+    correspondence_fixture: Option<Value>,
+    correspondence_path: Option<Vec<String>>,
+    correspondence_result_type: Option<String>,
+    correspondence_is_direct_name_transform: bool,
 }
 
 fn circumference_fixture_path() -> PathBuf {
@@ -44,6 +49,11 @@ fn traversal_fixture_path() -> PathBuf {
 fn sigil_fixture_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../fixtures/internal-sigil.galethog.json")
+}
+
+fn correspondence_fixture_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../fixtures/correspondence.aaoth-aaron.json")
 }
 
 fn load_json(path: PathBuf, description: &str) -> Value {
@@ -72,6 +82,53 @@ fn resolve_internal_sigil_element(fixture: &Value, element: &Value) -> String {
         .and_then(Value::as_str)
         .expect("unnumbered internal sigil element must contain a literal")
         .to_owned()
+}
+
+fn resolve_correspondence_path(
+    fixture: &Value,
+    source: &str,
+    target: &str,
+) -> Vec<String> {
+    let edges = fixture
+        .get("edges")
+        .and_then(Value::as_array)
+        .expect("correspondence fixture must contain edges");
+
+    let mut queue = VecDeque::from([vec![source.to_owned()]]);
+    let mut visited = vec![source.to_owned()];
+
+    while let Some(path) = queue.pop_front() {
+        let current = path
+            .last()
+            .expect("correspondence path cannot be empty");
+
+        if current == target {
+            return path;
+        }
+
+        for edge in edges {
+            let from = edge
+                .get("from")
+                .and_then(Value::as_str)
+                .expect("correspondence edge must contain from");
+            let to = edge
+                .get("to")
+                .and_then(Value::as_str)
+                .expect("correspondence edge must contain to");
+
+            if from != current || visited.iter().any(|node| node == to) {
+                continue;
+            }
+
+            visited.push(to.to_owned());
+
+            let mut next_path = path.clone();
+            next_path.push(to.to_owned());
+            queue.push_back(next_path);
+        }
+    }
+
+    panic!("no correspondence path from {source} to {target}");
 }
 
 fn chambers(world: &World) -> &Vec<Value> {
@@ -587,6 +644,102 @@ async fn assert_internal_lookup(world: &mut World) {
         world.resolved_internal_value.as_deref(),
         Some(expected),
         "internal sigil value did not match the referenced circumference value"
+    );
+}
+
+#[given("the documented correspondence data is loaded")]
+async fn load_documented_correspondence_data(world: &mut World) {
+    world.correspondence_fixture = Some(load_json(
+        correspondence_fixture_path(),
+        "correspondence",
+    ));
+}
+
+#[when(expr = "I resolve the correspondence path from {string} to {string}")]
+async fn resolve_documented_correspondence_path(
+    world: &mut World,
+    source: String,
+    target: String,
+) {
+    let fixture = world
+        .correspondence_fixture
+        .as_ref()
+        .expect("documented correspondence data is not loaded");
+
+    world.correspondence_path = Some(resolve_correspondence_path(
+        fixture,
+        source.as_str(),
+        target.as_str(),
+    ));
+
+    let expectation = fixture
+        .get("expectedPaths")
+        .and_then(Value::as_array)
+        .and_then(|paths| {
+            paths.iter().find(|path| {
+                path.get("from").and_then(Value::as_str) == Some(source.as_str())
+                    && path.get("to").and_then(Value::as_str) == Some(target.as_str())
+            })
+        })
+        .expect("correspondence fixture is missing the expected path metadata");
+
+    world.correspondence_result_type = Some(
+        expectation
+            .get("resultType")
+            .and_then(Value::as_str)
+            .expect("expected path must contain resultType")
+            .to_owned(),
+    );
+
+    world.correspondence_is_direct_name_transform = expectation
+        .get("directNameTransform")
+        .and_then(Value::as_bool)
+        .expect("expected path must contain directNameTransform");
+}
+
+#[then("the path is:")]
+async fn assert_correspondence_path(
+    world: &mut World,
+    step: &cucumber::gherkin::Step,
+) {
+    let table = step
+        .table
+        .as_ref()
+        .expect("correspondence path assertion requires a data table");
+
+    let expected = table
+        .rows
+        .iter()
+        .skip(1)
+        .map(|row| {
+            row.first()
+                .expect("correspondence path table row must contain a node")
+                .clone()
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        world
+            .correspondence_path
+            .as_ref()
+            .expect("correspondence path has not been resolved"),
+        &expected
+    );
+}
+
+#[then("the result is identified as a correspondence path")]
+async fn assert_correspondence_result_type(world: &mut World) {
+    assert_eq!(
+        world.correspondence_result_type.as_deref(),
+        Some("correspondence_path")
+    );
+}
+
+#[then("the result is not identified as a direct name transform")]
+async fn assert_not_direct_name_transform(world: &mut World) {
+    assert!(
+        !world.correspondence_is_direct_name_transform,
+        "correspondence path was incorrectly identified as a direct name transform"
     );
 }
 
