@@ -105,3 +105,32 @@ Then("every historical variant retains citation metadata") do
     end
   end
 end
+
+
+def assert_variant_citation_field(field)
+  @variant_source_metadata.each do |variant_id, source|
+    citation = source["citation"]
+
+    unless citation.is_a?(Hash)
+      raise "#{variant_id} is missing citation metadata"
+    end
+
+    value = citation[field]
+
+    unless value.is_a?(String) && !value.strip.empty?
+      raise "#{variant_id} citation is missing #{field}"
+    end
+  end
+end
+
+Then("every historical variant retains citation author") do
+  assert_variant_citation_field("author")
+end
+
+Then("every historical variant retains citation title") do
+  assert_variant_citation_field("title")
+end
+
+Then("every historical variant retains citation container") do
+  assert_variant_citation_field("container")
+end
