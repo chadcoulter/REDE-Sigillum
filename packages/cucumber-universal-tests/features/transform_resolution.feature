@@ -1,3 +1,4 @@
+@transform-resolution
 Feature: Sigillum transform resolution
 
   Scenario Outline: Resolve a known Sigillum transform
