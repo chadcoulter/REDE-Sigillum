@@ -6,8 +6,14 @@
     "jones-unicursal-hexagram": {
       "url": "https://hermetic.com/jones/on-the-formulae-of-the-unicursal-hexagram"
     },
+    "jwmt-hod-mercury": {
+      "url": "https://www.jwmt.org/v2n13/doc.html"
+    },
     "ifdawn-hod": {
       "url": "https://ifdawn.com/esa/hod.htm"
+    },
+    "word-zohar-aaron-hod": {
+      "url": "https://iapsop.com/archive/materials/word_percival/word_v6_oct_1907-mar_1908.pdf"
     }
   },
   "acceptedTransform": {
@@ -27,7 +33,10 @@
         "from": "Mercury",
         "to": "Hod",
         "rule": "corresponds_to",
-        "sources": ["jones-unicursal-hexagram"]
+        "sources": [
+          "jones-unicursal-hexagram",
+          "jwmt-hod-mercury"
+        ]
       },
       {
         "id": "step-3",
@@ -35,7 +44,10 @@
         "from": "Hod",
         "to": "Aaron",
         "rule": "corresponds_to",
-        "sources": ["ifdawn-hod"]
+        "sources": [
+          "ifdawn-hod",
+          "word-zohar-aaron-hod"
+        ]
       }
     ]
   },
