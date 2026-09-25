@@ -241,7 +241,7 @@ async fn traversal_begins(world: &mut World, start: String) {
 
     let steps = fixture
         .get("documentedTraversals")
-        .and_then(|value| value.get(&start))
+        .and_then(|value| value.get(start.as_str()))
         .and_then(Value::as_array)
         .unwrap_or_else(|| panic!("no documented traversal begins at {start}"))
         .clone();
