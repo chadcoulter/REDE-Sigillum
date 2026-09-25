@@ -66,3 +66,42 @@ Then("the variants remain distinguishable") do
   raise "variant identifiers are not unique" unless variant_ids.uniq.length == variant_ids.length
   raise "variant values are not distinguishable" unless values.uniq.length > 1
 end
+
+
+When("I inspect the source metadata for every historical variant") do
+  @variant_source_metadata = @historical_variants.to_h do |variant_id, variant|
+    [variant_id, variant.fetch("source")]
+  end
+end
+
+Then("every historical variant retains its source URL") do
+  raise "no historical variant source metadata was loaded" if @variant_source_metadata.empty?
+
+  @variant_source_metadata.each do |variant_id, source|
+    url = source["url"]
+
+    if variant_id.to_s.empty? || !url.is_a?(String) || url.strip.empty?
+      raise "#{variant_id} is missing its source URL"
+    end
+  end
+end
+
+Then("every historical variant retains citation metadata") do
+  required_fields = %w[author title container]
+
+  @variant_source_metadata.each do |variant_id, source|
+    citation = source["citation"]
+
+    unless citation.is_a?(Hash)
+      raise "#{variant_id} is missing citation metadata"
+    end
+
+    required_fields.each do |field|
+      value = citation[field]
+
+      unless value.is_a?(String) && !value.strip.empty?
+        raise "#{variant_id} citation is missing #{field}"
+      end
+    end
+  end
+end
