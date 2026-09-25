@@ -1,0 +1,46 @@
+{
+  "sourceRegistry": {
+    "round-robin-1946": {
+      "url": "https://borderlandsciences.org/journal/vol/02/n10/Sigillum_Dei_AEmeth.html"
+    },
+    "jones-unicursal-hexagram": {
+      "url": "https://hermetic.com/jones/on-the-formulae-of-the-unicursal-hexagram"
+    },
+    "ifdawn-hod": {
+      "url": "https://ifdawn.com/esa/hod.htm"
+    }
+  },
+  "acceptedTransform": {
+    "id": "aaoth-to-aaron",
+    "steps": [
+      {
+        "id": "step-1",
+        "order": 1,
+        "from": "AAOTH",
+        "to": "Mercury",
+        "rule": "corresponds_to",
+        "sources": ["round-robin-1946"]
+      },
+      {
+        "id": "step-2",
+        "order": 2,
+        "from": "Mercury",
+        "to": "Hod",
+        "rule": "corresponds_to",
+        "sources": ["jones-unicursal-hexagram"]
+      },
+      {
+        "id": "step-3",
+        "order": 3,
+        "from": "Hod",
+        "to": "Aaron",
+        "rule": "corresponds_to",
+        "sources": ["ifdawn-hod"]
+      }
+    ]
+  },
+  "derivedResult": {
+    "value": "Aaron",
+    "lineage": ["step-1", "step-2", "step-3"]
+  }
+}
