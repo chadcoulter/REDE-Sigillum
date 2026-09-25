@@ -44,6 +44,7 @@ struct World {
     selected_variant_id: Option<String>,
     selected_variant: Option<Value>,
     variant_division_values: Option<Vec<(String, String, String, String)>>,
+    variant_source_metadata: Option<Vec<(String, Value)>>,
 }
 
 fn circumference_fixture_path() -> PathBuf {
@@ -1022,6 +1023,90 @@ async fn assert_selected_variant_source(world: &mut World) {
 
     assert!(!source_id.trim().is_empty(), "variant source id must not be empty");
     assert!(!source_url.trim().is_empty(), "variant source url must not be empty");
+}
+
+#[when("I inspect the source metadata for every historical variant")]
+async fn inspect_all_variant_source_metadata(world: &mut World) {
+    let fixture = world
+        .variant_fixture
+        .as_ref()
+        .expect("historical dataset variants are not loaded");
+
+    let variants = fixture
+        .get("variants")
+        .and_then(Value::as_object)
+        .expect("variant fixture must contain variants");
+
+    world.variant_source_metadata = Some(
+        variants
+            .iter()
+            .map(|(variant_id, variant)| {
+                let source = variant
+                    .get("source")
+                    .expect("historical variant must contain source")
+                    .clone();
+
+                (variant_id.clone(), source)
+            })
+            .collect(),
+    );
+}
+
+#[then("every historical variant retains its source URL")]
+async fn assert_all_variant_source_urls(world: &mut World) {
+    let metadata = world
+        .variant_source_metadata
+        .as_ref()
+        .expect("historical variant source metadata has not been inspected");
+
+    assert!(
+        !metadata.is_empty(),
+        "no historical variant source metadata was loaded"
+    );
+
+    for (variant_id, source) in metadata {
+        assert!(
+            !variant_id.trim().is_empty(),
+            "historical variant id must not be empty"
+        );
+
+        let url = source
+            .get("url")
+            .and_then(Value::as_str)
+            .unwrap_or_else(|| panic!("{variant_id} is missing its source URL"));
+
+        assert!(
+            !url.trim().is_empty(),
+            "{variant_id} source URL must not be empty"
+        );
+    }
+}
+
+#[then("every historical variant retains citation metadata")]
+async fn assert_all_variant_citation_metadata(world: &mut World) {
+    let metadata = world
+        .variant_source_metadata
+        .as_ref()
+        .expect("historical variant source metadata has not been inspected");
+
+    for (variant_id, source) in metadata {
+        let citation = source
+            .get("citation")
+            .and_then(Value::as_object)
+            .unwrap_or_else(|| panic!("{variant_id} is missing citation metadata"));
+
+        for field in ["author", "title", "container"] {
+            let value = citation
+                .get(field)
+                .and_then(Value::as_str)
+                .unwrap_or_else(|| panic!("{variant_id} citation is missing {field}"));
+
+            assert!(
+                !value.trim().is_empty(),
+                "{variant_id} citation field {field} must not be empty"
+            );
+        }
+    }
 }
 
 #[when(expr = "I inspect circumference division {int}")]
