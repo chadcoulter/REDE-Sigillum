@@ -24,6 +24,11 @@ struct World {
     normalization_symbols: Option<Vec<String>>,
     expected_normalized_name: Option<String>,
     normalized_name: Option<String>,
+
+    sigil_fixture: Option<Value>,
+    galethog_elements: Option<Vec<Value>>,
+    internal_sigil_element: Option<Value>,
+    resolved_internal_value: Option<String>,
 }
 
 fn circumference_fixture_path() -> PathBuf {
@@ -36,11 +41,37 @@ fn traversal_fixture_path() -> PathBuf {
         .join("../../fixtures/traversal.name-resolution.json")
 }
 
+fn sigil_fixture_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../fixtures/internal-sigil.galethog.json")
+}
+
 fn load_json(path: PathBuf, description: &str) -> Value {
     let content = fs::read_to_string(path)
         .unwrap_or_else(|_| panic!("failed to read {description} fixture"));
     serde_json::from_str(&content)
         .unwrap_or_else(|_| panic!("invalid {description} fixture JSON"))
+}
+
+fn resolve_internal_sigil_element(fixture: &Value, element: &Value) -> String {
+    let reference = element
+        .get("circumferenceReference")
+        .and_then(Value::as_i64);
+
+    if let Some(reference) = reference {
+        return fixture
+            .get("upperCircleLookup")
+            .and_then(|lookup| lookup.get(reference.to_string().as_str()))
+            .and_then(Value::as_str)
+            .unwrap_or_else(|| panic!("missing upper-circle lookup for reference {reference}"))
+            .to_owned();
+    }
+
+    element
+        .get("literal")
+        .and_then(Value::as_str)
+        .expect("unnumbered internal sigil element must contain a literal")
+        .to_owned()
 }
 
 fn chambers(world: &World) -> &Vec<Value> {
@@ -475,6 +506,87 @@ async fn assert_duplicate_vowels_collapsed(world: &mut World) {
         world.normalized_name,
         world.expected_normalized_name,
         "duplicate vowel normalization did not match the shared fixture"
+    );
+}
+
+#[given("the historical Galethog sigil data is loaded")]
+async fn load_galethog_sigil(world: &mut World) {
+    let fixture = load_json(sigil_fixture_path(), "internal sigil");
+
+    let elements = fixture
+        .get("galethog")
+        .and_then(|galethog| galethog.get("internalElements"))
+        .and_then(Value::as_array)
+        .expect("Galethog fixture must contain internalElements")
+        .clone();
+
+    world.sigil_fixture = Some(fixture);
+    world.galethog_elements = Some(elements);
+}
+
+#[when("its internal references are resolved against the circumference")]
+async fn resolve_galethog_references(world: &mut World) {
+    let fixture = world
+        .sigil_fixture
+        .as_ref()
+        .expect("historical Galethog sigil data is not loaded");
+    let elements = world
+        .galethog_elements
+        .as_ref()
+        .expect("Galethog internal elements are not loaded");
+
+    let resolved = elements
+        .iter()
+        .map(|element| resolve_internal_sigil_element(fixture, element))
+        .collect::<String>();
+
+    world.resolved_name = Some(resolved);
+}
+
+#[given("an internal Sigillum element contains a circumference reference")]
+async fn internal_element_with_reference(world: &mut World) {
+    let fixture = load_json(sigil_fixture_path(), "internal sigil");
+
+    let example = fixture
+        .get("lookupExample")
+        .expect("internal sigil fixture must contain lookupExample")
+        .clone();
+
+    world.sigil_fixture = Some(fixture);
+    world.internal_sigil_element = Some(example);
+}
+
+#[when("the element is resolved")]
+async fn resolve_internal_element(world: &mut World) {
+    let resolved = {
+        let fixture = world
+            .sigil_fixture
+            .as_ref()
+            .expect("internal sigil fixture is not loaded");
+        let element = world
+            .internal_sigil_element
+            .as_ref()
+            .expect("internal sigil element is not loaded");
+
+        resolve_internal_sigil_element(fixture, element)
+    };
+
+    world.resolved_internal_value = Some(resolved);
+}
+
+#[then("its value is obtained from the referenced circumference position")]
+async fn assert_internal_lookup(world: &mut World) {
+    let expected = world
+        .internal_sigil_element
+        .as_ref()
+        .and_then(|element| element.get("expectedValue"))
+        .and_then(Value::as_str)
+        .expect("lookup example must contain expectedValue");
+
+    assert_eq!(
+        world.resolved_internal_value.as_deref(),
+        Some(expected),
+        "internal sigil value did not match the referenced circumference value"
     );
 }
 
