@@ -11,6 +11,9 @@ Feature: Historical data set variants
     When I inspect the source metadata for every historical variant
     Then every historical variant retains its source URL
     And every historical variant retains citation metadata
+    And every historical variant retains citation author
+    And every historical variant retains citation title
+    And every historical variant retains citation container
 
   Scenario Outline: Known circumference discrepancies remain variant-specific
     Given multiple historical Sigillum data variants are available
