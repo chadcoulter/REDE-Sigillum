@@ -8,11 +8,39 @@ struct World {
     sigillum_dataset: Option<Value>,
     circumference: Option<Value>,
     companies: Option<Vec<Vec<Value>>>,
+
+    traversal_fixture: Option<Value>,
+    traversal_steps: Option<Vec<Value>>,
+    traversal_trace: Option<String>,
+    resolved_name: Option<String>,
+
+    traversal_step: Option<Value>,
+    selected_direction: Option<String>,
+    selected_number: Option<i64>,
+    selected_index: Option<i64>,
+    traversal_terminated: bool,
+    terminal_symbol: Option<String>,
+
+    normalization_symbols: Option<Vec<String>>,
+    expected_normalized_name: Option<String>,
+    normalized_name: Option<String>,
 }
 
-fn fixture_path() -> PathBuf {
+fn circumference_fixture_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../fixtures/circumference.structure.json")
+}
+
+fn traversal_fixture_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../fixtures/traversal.name-resolution.json")
+}
+
+fn load_json(path: PathBuf, description: &str) -> Value {
+    let content = fs::read_to_string(path)
+        .unwrap_or_else(|_| panic!("failed to read {description} fixture"));
+    serde_json::from_str(&content)
+        .unwrap_or_else(|_| panic!("invalid {description} fixture JSON"))
 }
 
 fn chambers(world: &World) -> &Vec<Value> {
@@ -25,12 +53,85 @@ fn chambers(world: &World) -> &Vec<Value> {
         .expect("circumference chambers must be an array")
 }
 
+fn traversal_direction(placement: &str) -> i64 {
+    match placement {
+        "above" => 1,
+        "below" => -1,
+        _ => 0,
+    }
+}
+
+fn next_traversal_index(
+    current_index: i64,
+    number: i64,
+    placement: &str,
+    circumference_size: i64,
+) -> i64 {
+    (current_index + traversal_direction(placement) * number)
+        .rem_euclid(circumference_size)
+}
+
+fn normalize_traversal_name(symbols: &[String]) -> String {
+    let vowels = ['a', 'e', 'i', 'o', 'u'];
+    let mut normalized: Vec<String> = Vec::new();
+
+    for (index, symbol) in symbols.iter().enumerate() {
+        let current = symbol.to_lowercase();
+        let duplicate_vowel = index > 1
+            && normalized
+                .last()
+                .map(|previous| previous.to_lowercase() == current)
+                .unwrap_or(false)
+            && current
+                .chars()
+                .next()
+                .map(|character| vowels.contains(&character))
+                .unwrap_or(false);
+
+        if !duplicate_vowel {
+            normalized.push(symbol.clone());
+        }
+    }
+
+    normalized.concat()
+}
+
+fn format_traversal_trace(steps: &[Value]) -> String {
+    steps
+        .iter()
+        .map(|step| {
+            let symbol = step
+                .get("symbol")
+                .and_then(Value::as_str)
+                .expect("traversal symbol must be a string");
+
+            let Some(number) = step.get("number").and_then(Value::as_i64) else {
+                return symbol.to_owned();
+            };
+
+            let placement = step
+                .get("placement")
+                .and_then(Value::as_str)
+                .expect("numbered traversal step must have a placement");
+
+            let signed_number = if placement == "above" {
+                number
+            } else {
+                -number
+            };
+
+            format!("{symbol}[{signed_number}]")
+        })
+        .collect::<Vec<_>>()
+        .join(" -> ")
+}
+
 #[given("the historical Sigillum data set is loaded")]
 async fn load_historical_sigillum(world: &mut World) {
-    let content =
-        fs::read_to_string(fixture_path()).expect("failed to read circumference fixture");
-    world.sigillum_dataset =
-        Some(serde_json::from_str(&content).expect("invalid circumference fixture JSON"));
+    world.sigillum_dataset = Some(load_json(
+        circumference_fixture_path(),
+        "circumference",
+    ));
 }
 
 #[when("I inspect the circumference")]
@@ -131,6 +232,249 @@ async fn assert_company_size(world: &mut World, expected: usize) {
     assert!(
         companies.iter().all(|company| company.len() == expected),
         "not every company contains {expected} chambers"
+    );
+}
+
+#[given(expr = "the traversal begins at {string}")]
+async fn traversal_begins(world: &mut World, start: String) {
+    let fixture = load_json(traversal_fixture_path(), "traversal");
+
+    let steps = fixture
+        .get("documentedTraversals")
+        .and_then(|value| value.get(&start))
+        .and_then(Value::as_array)
+        .unwrap_or_else(|| panic!("no documented traversal begins at {start}"))
+        .clone();
+
+    world.traversal_fixture = Some(fixture);
+    world.traversal_steps = Some(steps);
+}
+
+#[when("the circumference traversal is resolved")]
+async fn resolve_circumference_traversal(world: &mut World) {
+    let steps = world
+        .traversal_steps
+        .as_ref()
+        .expect("traversal has not been initialized");
+
+    world.traversal_trace = Some(format_traversal_trace(steps));
+
+    let symbols = steps
+        .iter()
+        .map(|step| {
+            step.get("symbol")
+                .and_then(Value::as_str)
+                .expect("traversal symbol must be a string")
+                .to_owned()
+        })
+        .collect::<Vec<_>>();
+
+    world.resolved_name = Some(normalize_traversal_name(&symbols));
+}
+
+#[then(expr = "the traversal is {string}")]
+async fn assert_traversal(world: &mut World, expected: String) {
+    assert_eq!(
+        world
+            .traversal_trace
+            .as_deref()
+            .expect("traversal has not been resolved"),
+        expected
+    );
+}
+
+#[then(expr = "the resolved name is {string}")]
+async fn assert_resolved_name(world: &mut World, expected: String) {
+    assert_eq!(
+        world
+            .resolved_name
+            .as_deref()
+            .expect("name has not been resolved"),
+        expected
+    );
+}
+
+fn load_step_example(world: &mut World, example_name: &str) {
+    let fixture = load_json(traversal_fixture_path(), "traversal");
+    let step = fixture
+        .get("stepExamples")
+        .and_then(|examples| examples.get(example_name))
+        .unwrap_or_else(|| panic!("missing traversal step example {example_name}"))
+        .clone();
+
+    world.traversal_fixture = Some(fixture);
+    world.traversal_step = Some(step);
+}
+
+#[given("a traversal step with a number above the current letter")]
+async fn traversal_step_above(world: &mut World) {
+    load_step_example(world, "above");
+}
+
+#[given("a traversal step with a number below the current letter")]
+async fn traversal_step_below(world: &mut World) {
+    load_step_example(world, "below");
+}
+
+#[when("the traversal step is resolved")]
+async fn resolve_traversal_step(world: &mut World) {
+    let step = world
+        .traversal_step
+        .as_ref()
+        .expect("traversal step has not been initialized");
+
+    let number = step.get("number").and_then(Value::as_i64);
+
+    if number.is_none() {
+        world.traversal_terminated = true;
+        world.terminal_symbol = Some(
+            step.get("symbol")
+                .and_then(Value::as_str)
+                .expect("terminal step must contain a symbol")
+                .to_owned(),
+        );
+        return;
+    }
+
+    let number = number.expect("number was checked above");
+    let placement = step
+        .get("placement")
+        .and_then(Value::as_str)
+        .expect("numbered traversal step must have a placement");
+    let current_index = step
+        .get("currentIndex")
+        .and_then(Value::as_i64)
+        .expect("step currentIndex must be an integer");
+    let circumference_size = world
+        .traversal_fixture
+        .as_ref()
+        .and_then(|fixture| fixture.get("circumferenceSize"))
+        .and_then(Value::as_i64)
+        .expect("fixture circumferenceSize must be an integer");
+
+    world.traversal_terminated = false;
+    world.selected_direction = Some(
+        if placement == "above" {
+            "clockwise"
+        } else {
+            "counterclockwise"
+        }
+        .to_owned(),
+    );
+    world.selected_number = Some(number);
+    world.selected_index = Some(next_traversal_index(
+        current_index,
+        number,
+        placement,
+        circumference_size,
+    ));
+}
+
+#[then("the next chamber is selected clockwise by that number")]
+async fn assert_clockwise_step(world: &mut World) {
+    let step = world
+        .traversal_step
+        .as_ref()
+        .expect("traversal step has not been initialized");
+
+    assert_eq!(world.selected_direction.as_deref(), Some("clockwise"));
+    assert_eq!(
+        world.selected_number,
+        step.get("number").and_then(Value::as_i64)
+    );
+    assert_eq!(
+        world.selected_index,
+        step.get("expectedIndex").and_then(Value::as_i64)
+    );
+}
+
+#[then("the next chamber is selected counterclockwise by that number")]
+async fn assert_counterclockwise_step(world: &mut World) {
+    let step = world
+        .traversal_step
+        .as_ref()
+        .expect("traversal step has not been initialized");
+
+    assert_eq!(
+        world.selected_direction.as_deref(),
+        Some("counterclockwise")
+    );
+    assert_eq!(
+        world.selected_number,
+        step.get("number").and_then(Value::as_i64)
+    );
+    assert_eq!(
+        world.selected_index,
+        step.get("expectedIndex").and_then(Value::as_i64)
+    );
+}
+
+#[given("a traversal reaches a letter without a number")]
+async fn traversal_reaches_unnumbered_letter(world: &mut World) {
+    load_step_example(world, "termination");
+}
+
+#[then("the name terminates at that letter")]
+async fn assert_name_termination(world: &mut World) {
+    let expected_symbol = world
+        .traversal_step
+        .as_ref()
+        .and_then(|step| step.get("symbol"))
+        .and_then(Value::as_str)
+        .expect("terminal fixture must contain a symbol");
+
+    assert!(world.traversal_terminated);
+    assert_eq!(world.terminal_symbol.as_deref(), Some(expected_symbol));
+}
+
+#[given("a resolved traversal contains consecutive duplicate vowels after the first letter")]
+async fn duplicate_vowel_traversal(world: &mut World) {
+    let fixture = load_json(traversal_fixture_path(), "traversal");
+    let example = fixture
+        .get("normalizationExamples")
+        .and_then(|examples| examples.get("duplicateVowelsAfterBeginning"))
+        .expect("missing duplicate-vowel normalization example");
+
+    world.normalization_symbols = Some(
+        example
+            .get("symbols")
+            .and_then(Value::as_array)
+            .expect("normalization symbols must be an array")
+            .iter()
+            .map(|symbol| {
+                symbol
+                    .as_str()
+                    .expect("normalization symbol must be a string")
+                    .to_owned()
+            })
+            .collect(),
+    );
+
+    world.expected_normalized_name = Some(
+        example
+            .get("expected")
+            .and_then(Value::as_str)
+            .expect("normalization expected value must be a string")
+            .to_owned(),
+    );
+}
+
+#[when("the name is normalized")]
+async fn normalize_resolved_name(world: &mut World) {
+    let symbols = world
+        .normalization_symbols
+        .as_ref()
+        .expect("normalization symbols have not been initialized");
+
+    world.normalized_name = Some(normalize_traversal_name(symbols));
+}
+
+#[then("the consecutive duplicate vowels are represented once")]
+async fn assert_duplicate_vowels_collapsed(world: &mut World) {
+    assert_eq!(
+        world.normalized_name,
+        world.expected_normalized_name,
+        "duplicate vowel normalization did not match the shared fixture"
     );
 }
 
