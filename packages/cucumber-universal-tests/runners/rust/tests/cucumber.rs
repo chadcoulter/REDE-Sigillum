@@ -1214,6 +1214,45 @@ async fn assert_variants_distinguishable(world: &mut World) {
     );
 }
 
+fn assert_variant_citation_field(world: &World, field: &str) {
+    let metadata = world
+        .variant_source_metadata
+        .as_ref()
+        .expect("historical variant source metadata has not been inspected");
+
+    for (variant_id, source) in metadata {
+        let citation = source
+            .get("citation")
+            .and_then(Value::as_object)
+            .unwrap_or_else(|| panic!("{variant_id} is missing citation metadata"));
+
+        let value = citation
+            .get(field)
+            .and_then(Value::as_str)
+            .unwrap_or_else(|| panic!("{variant_id} citation is missing {field}"));
+
+        assert!(
+            !value.trim().is_empty(),
+            "{variant_id} citation field {field} must not be empty"
+        );
+    }
+}
+
+#[then("every historical variant retains citation author")]
+async fn assert_all_variant_citation_authors(world: &mut World) {
+    assert_variant_citation_field(world, "author");
+}
+
+#[then("every historical variant retains citation title")]
+async fn assert_all_variant_citation_titles(world: &mut World) {
+    assert_variant_citation_field(world, "title");
+}
+
+#[then("every historical variant retains citation container")]
+async fn assert_all_variant_citation_containers(world: &mut World) {
+    assert_variant_citation_field(world, "container");
+}
+
 #[tokio::main]
 async fn main() {
     World::run("../../features").await;
