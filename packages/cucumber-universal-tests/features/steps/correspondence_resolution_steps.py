@@ -55,8 +55,14 @@ def resolve_documented_correspondence_path(context, source, target):
         target,
     )
 
-    context.correspondence_result_type = "correspondence_path"
-    context.correspondence_is_direct_name_transform = False
+    expectation = next(
+        path
+        for path in context.correspondence_fixture["expectedPaths"]
+        if path["from"] == source and path["to"] == target
+    )
+
+    context.correspondence_result_type = expectation["resultType"]
+    context.correspondence_is_direct_name_transform = expectation["directNameTransform"]
 
 
 @then("the path is:")
