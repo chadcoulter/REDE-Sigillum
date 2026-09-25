@@ -1,0 +1,50 @@
+{
+  "nodes": [
+    "AAOTH",
+    "Mercury",
+    "Hod",
+    "Aaron"
+  ],
+  "edges": [
+    {
+      "from": "AAOTH",
+      "to": "Mercury",
+      "relation": "corresponds_to",
+      "sources": [
+        "https://borderlandsciences.org/journal/vol/02/n10/Sigillum_Dei_AEmeth.html"
+      ]
+    },
+    {
+      "from": "Mercury",
+      "to": "Hod",
+      "relation": "corresponds_to",
+      "sources": [
+        "https://hermetic.com/jones/on-the-formulae-of-the-unicursal-hexagram",
+        "https://www.jwmt.org/v2n13/doc.html"
+      ]
+    },
+    {
+      "from": "Hod",
+      "to": "Aaron",
+      "relation": "corresponds_to",
+      "sources": [
+        "https://ifdawn.com/esa/hod.htm",
+        "https://iapsop.com/archive/materials/word_percival/word_v6_oct_1907-mar_1908.pdf"
+      ]
+    }
+  ],
+  "expectedPaths": [
+    {
+      "from": "AAOTH",
+      "to": "Aaron",
+      "nodes": [
+        "AAOTH",
+        "Mercury",
+        "Hod",
+        "Aaron"
+      ],
+      "resultType": "correspondence_path",
+      "directNameTransform": false
+    }
+  ]
+}
