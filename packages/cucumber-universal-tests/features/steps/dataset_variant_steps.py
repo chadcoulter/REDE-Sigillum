@@ -69,3 +69,41 @@ def assert_variants_distinguishable(context):
 
     assert len(set(readings.keys())) == len(readings)
     assert len({entry["value"] for entry in readings.values()}) > 1
+
+
+@when("I inspect the source metadata for every historical variant")
+def inspect_all_variant_source_metadata(context):
+    context.variant_source_metadata = {
+        variant_id: variant["source"]
+        for variant_id, variant in context.historical_variants.items()
+    }
+
+
+@then("every historical variant retains its source URL")
+def assert_all_variant_source_urls(context):
+    assert context.variant_source_metadata
+
+    for variant_id, source in context.variant_source_metadata.items():
+        assert variant_id
+        assert isinstance(source.get("url"), str)
+        assert source["url"].strip()
+
+
+@then("every historical variant retains citation metadata")
+def assert_all_variant_citation_metadata(context):
+    required_fields = ("author", "title", "container")
+
+    for variant_id, source in context.variant_source_metadata.items():
+        citation = source.get("citation")
+        assert isinstance(citation, dict), (
+            f"{variant_id} is missing citation metadata"
+        )
+
+        for field in required_fields:
+            value = citation.get(field)
+            assert isinstance(value, str), (
+                f"{variant_id} citation is missing {field}"
+            )
+            assert value.strip(), (
+                f"{variant_id} citation field {field} is empty"
+            )
