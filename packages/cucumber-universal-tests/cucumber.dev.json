@@ -1,6 +1,12 @@
 {
   "defaultEnabled": true,
   "tagOverrides": {
-    "@transform-resolution": true
+    "@transform-resolution": true,
+    "@circumference": true,
+    "@name-resolution": true,
+    "@sigil-resolution": true,
+    "@correspondence-resolution": true,
+    "@provenance": true,
+    "@dataset-variants": true
   }
 }
