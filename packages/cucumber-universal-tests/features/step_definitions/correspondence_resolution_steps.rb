@@ -47,8 +47,17 @@ When("I resolve the correspondence path from {string} to {string}") do |source, 
     target
   )
 
-  @correspondence_result_type = "correspondence_path"
-  @correspondence_is_direct_name_transform = false
+  expectation = @correspondence_fixture
+    .fetch("expectedPaths")
+    .find do |path|
+      path.fetch("from") == source && path.fetch("to") == target
+    end
+
+  raise "missing expected path metadata" if expectation.nil?
+
+  @correspondence_result_type = expectation.fetch("resultType")
+  @correspondence_is_direct_name_transform =
+    expectation.fetch("directNameTransform")
 end
 
 Then("the path is:") do |table|
