@@ -39,6 +39,11 @@ struct World {
     transform_trace: Option<Vec<Value>>,
     provenance_steps: Option<Vec<Value>>,
     result_lineage: Option<Vec<String>>,
+
+    variant_fixture: Option<Value>,
+    selected_variant_id: Option<String>,
+    selected_variant: Option<Value>,
+    variant_division_values: Option<Vec<(String, String, String, String)>>,
 }
 
 fn circumference_fixture_path() -> PathBuf {
@@ -64,6 +69,11 @@ fn correspondence_fixture_path() -> PathBuf {
 fn provenance_fixture_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../fixtures/provenance.retention.json")
+}
+
+fn variant_fixture_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../fixtures/historical.dataset-variants.json")
 }
 
 fn load_json(path: PathBuf, description: &str) -> Value {
@@ -959,6 +969,163 @@ async fn assert_no_lineage_erasure(world: &mut World) {
         unique.len(),
         original_ids.len(),
         "transform lineage contains duplicated step identifiers"
+    );
+}
+
+#[given("multiple historical Sigillum data variants are available")]
+async fn load_historical_variants(world: &mut World) {
+    world.variant_fixture = Some(load_json(
+        variant_fixture_path(),
+        "historical dataset variants",
+    ));
+}
+
+#[when("a variant is selected")]
+async fn select_historical_variant(world: &mut World) {
+    let fixture = world
+        .variant_fixture
+        .as_ref()
+        .expect("historical dataset variants are not loaded");
+
+    let variant_id = fixture
+        .get("defaultVariant")
+        .and_then(Value::as_str)
+        .expect("variant fixture must contain defaultVariant");
+
+    let variant = fixture
+        .get("variants")
+        .and_then(|variants| variants.get(variant_id))
+        .unwrap_or_else(|| panic!("default variant {variant_id} is not defined"))
+        .clone();
+
+    world.selected_variant_id = Some(variant_id.to_owned());
+    world.selected_variant = Some(variant);
+}
+
+#[then("the selected variant identifies its source")]
+async fn assert_selected_variant_source(world: &mut World) {
+    let source = world
+        .selected_variant
+        .as_ref()
+        .expect("no historical variant has been selected")
+        .get("source")
+        .expect("selected variant must contain source");
+
+    let source_id = source
+        .get("id")
+        .and_then(Value::as_str)
+        .expect("variant source must contain id");
+    let source_url = source
+        .get("url")
+        .and_then(Value::as_str)
+        .expect("variant source must contain url");
+
+    assert!(!source_id.trim().is_empty(), "variant source id must not be empty");
+    assert!(!source_url.trim().is_empty(), "variant source url must not be empty");
+}
+
+#[when(expr = "I inspect circumference division {int}")]
+async fn inspect_variant_division(world: &mut World, division: i64) {
+    let fixture = world
+        .variant_fixture
+        .as_ref()
+        .expect("historical dataset variants are not loaded");
+
+    let variants = fixture
+        .get("variants")
+        .and_then(Value::as_object)
+        .expect("variant fixture must contain variants");
+
+    let division_key = division.to_string();
+    let mut readings = Vec::new();
+
+    for (variant_id, variant) in variants {
+        let value = variant
+            .get("circumferenceDivisions")
+            .and_then(|divisions| divisions.get(division_key.as_str()))
+            .and_then(Value::as_str)
+            .unwrap_or_else(|| {
+                panic!(
+                    "variant {variant_id} does not define circumference division {division}"
+                )
+            });
+
+        let source = variant
+            .get("source")
+            .expect("historical variant must contain source");
+
+        let source_id = source
+            .get("id")
+            .and_then(Value::as_str)
+            .expect("variant source must contain id");
+
+        let source_url = source
+            .get("url")
+            .and_then(Value::as_str)
+            .expect("variant source must contain url");
+
+        readings.push((
+            variant_id.clone(),
+            value.to_owned(),
+            source_id.to_owned(),
+            source_url.to_owned(),
+        ));
+    }
+
+    world.variant_division_values = Some(readings);
+}
+
+#[then("each differing value remains associated with its historical variant")]
+async fn assert_variant_value_associations(world: &mut World) {
+    let readings = world
+        .variant_division_values
+        .as_ref()
+        .expect("no circumference variant division has been inspected");
+
+    assert!(
+        readings.len() >= 2,
+        "at least two historical variants are required"
+    );
+
+    for (variant_id, value, source_id, source_url) in readings {
+        assert!(!variant_id.trim().is_empty(), "variant id must not be empty");
+        assert!(!value.trim().is_empty(), "variant value must not be empty");
+        assert!(!source_id.trim().is_empty(), "source id must not be empty");
+        assert!(!source_url.trim().is_empty(), "source url must not be empty");
+    }
+}
+
+#[then("the variants remain distinguishable")]
+async fn assert_variants_distinguishable(world: &mut World) {
+    let readings = world
+        .variant_division_values
+        .as_ref()
+        .expect("no circumference variant division has been inspected");
+
+    let mut variant_ids = readings
+        .iter()
+        .map(|reading| reading.0.clone())
+        .collect::<Vec<_>>();
+    let original_variant_count = variant_ids.len();
+    variant_ids.sort();
+    variant_ids.dedup();
+
+    assert_eq!(
+        variant_ids.len(),
+        original_variant_count,
+        "historical variant identifiers are not unique"
+    );
+
+    let mut values = readings
+        .iter()
+        .map(|reading| reading.1.clone())
+        .collect::<Vec<_>>();
+    values.sort();
+    values.dedup();
+
+    assert!(
+        values.len() > 1,
+        "historical variant readings are not distinguishable"
     );
 }
 
