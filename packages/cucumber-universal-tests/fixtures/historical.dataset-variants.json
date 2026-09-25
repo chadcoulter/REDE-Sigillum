@@ -1,0 +1,35 @@
+{
+  "defaultVariant": "spirit-action",
+  "variants": {
+    "spirit-action": {
+      "label": "Spirit Action reading",
+      "source": {
+        "id": "jones-seal-of-gods-truth",
+        "url": "https://hermetic.com/jones/in-operibus-sigillo-dei-aemeth/the-seal-of-gods-truth"
+      },
+      "circumferenceDivisions": {
+        "22": "y15",
+        "32": "A666"
+      }
+    },
+    "dee-constructed": {
+      "label": "Dee constructed Sigillum",
+      "source": {
+        "id": "jones-thrones",
+        "url": "https://hermetic.com/jones/in-operibus-sigillo-dei-aemeth/the-thrones-the-names-drawn-from-the-circumference-of-the-sigillum"
+      },
+      "circumferenceDivisions": {
+        "22": "y14",
+        "32": "6A"
+      }
+    }
+  },
+  "discrepancies": {
+    "22": {
+      "description": "Spirit Action y15 versus Dee rendering y14"
+    },
+    "32": {
+      "description": "A666 versus the reduced 6A constructed form"
+    }
+  }
+}
