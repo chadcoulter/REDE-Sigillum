@@ -1,0 +1,6 @@
+{
+  "defaultEnabled": true,
+  "tagOverrides": {
+    "@transform-resolution": true
+  }
+}
