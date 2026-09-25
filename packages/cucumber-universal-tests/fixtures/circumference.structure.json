@@ -1,0 +1,246 @@
+{
+  "circumference": {
+    "chambers": [
+      {
+        "index": 1,
+        "startDegree": 0,
+        "endDegree": 9,
+        "company": 1
+      },
+      {
+        "index": 2,
+        "startDegree": 9,
+        "endDegree": 18,
+        "company": 1
+      },
+      {
+        "index": 3,
+        "startDegree": 18,
+        "endDegree": 27,
+        "company": 1
+      },
+      {
+        "index": 4,
+        "startDegree": 27,
+        "endDegree": 36,
+        "company": 1
+      },
+      {
+        "index": 5,
+        "startDegree": 36,
+        "endDegree": 45,
+        "company": 1
+      },
+      {
+        "index": 6,
+        "startDegree": 45,
+        "endDegree": 54,
+        "company": 2
+      },
+      {
+        "index": 7,
+        "startDegree": 54,
+        "endDegree": 63,
+        "company": 2
+      },
+      {
+        "index": 8,
+        "startDegree": 63,
+        "endDegree": 72,
+        "company": 2
+      },
+      {
+        "index": 9,
+        "startDegree": 72,
+        "endDegree": 81,
+        "company": 2
+      },
+      {
+        "index": 10,
+        "startDegree": 81,
+        "endDegree": 90,
+        "company": 2
+      },
+      {
+        "index": 11,
+        "startDegree": 90,
+        "endDegree": 99,
+        "company": 3
+      },
+      {
+        "index": 12,
+        "startDegree": 99,
+        "endDegree": 108,
+        "company": 3
+      },
+      {
+        "index": 13,
+        "startDegree": 108,
+        "endDegree": 117,
+        "company": 3
+      },
+      {
+        "index": 14,
+        "startDegree": 117,
+        "endDegree": 126,
+        "company": 3
+      },
+      {
+        "index": 15,
+        "startDegree": 126,
+        "endDegree": 135,
+        "company": 3
+      },
+      {
+        "index": 16,
+        "startDegree": 135,
+        "endDegree": 144,
+        "company": 4
+      },
+      {
+        "index": 17,
+        "startDegree": 144,
+        "endDegree": 153,
+        "company": 4
+      },
+      {
+        "index": 18,
+        "startDegree": 153,
+        "endDegree": 162,
+        "company": 4
+      },
+      {
+        "index": 19,
+        "startDegree": 162,
+        "endDegree": 171,
+        "company": 4
+      },
+      {
+        "index": 20,
+        "startDegree": 171,
+        "endDegree": 180,
+        "company": 4
+      },
+      {
+        "index": 21,
+        "startDegree": 180,
+        "endDegree": 189,
+        "company": 5
+      },
+      {
+        "index": 22,
+        "startDegree": 189,
+        "endDegree": 198,
+        "company": 5
+      },
+      {
+        "index": 23,
+        "startDegree": 198,
+        "endDegree": 207,
+        "company": 5
+      },
+      {
+        "index": 24,
+        "startDegree": 207,
+        "endDegree": 216,
+        "company": 5
+      },
+      {
+        "index": 25,
+        "startDegree": 216,
+        "endDegree": 225,
+        "company": 5
+      },
+      {
+        "index": 26,
+        "startDegree": 225,
+        "endDegree": 234,
+        "company": 6
+      },
+      {
+        "index": 27,
+        "startDegree": 234,
+        "endDegree": 243,
+        "company": 6
+      },
+      {
+        "index": 28,
+        "startDegree": 243,
+        "endDegree": 252,
+        "company": 6
+      },
+      {
+        "index": 29,
+        "startDegree": 252,
+        "endDegree": 261,
+        "company": 6
+      },
+      {
+        "index": 30,
+        "startDegree": 261,
+        "endDegree": 270,
+        "company": 6
+      },
+      {
+        "index": 31,
+        "startDegree": 270,
+        "endDegree": 279,
+        "company": 7
+      },
+      {
+        "index": 32,
+        "startDegree": 279,
+        "endDegree": 288,
+        "company": 7
+      },
+      {
+        "index": 33,
+        "startDegree": 288,
+        "endDegree": 297,
+        "company": 7
+      },
+      {
+        "index": 34,
+        "startDegree": 297,
+        "endDegree": 306,
+        "company": 7
+      },
+      {
+        "index": 35,
+        "startDegree": 306,
+        "endDegree": 315,
+        "company": 7
+      },
+      {
+        "index": 36,
+        "startDegree": 315,
+        "endDegree": 324,
+        "company": 8
+      },
+      {
+        "index": 37,
+        "startDegree": 324,
+        "endDegree": 333,
+        "company": 8
+      },
+      {
+        "index": 38,
+        "startDegree": 333,
+        "endDegree": 342,
+        "company": 8
+      },
+      {
+        "index": 39,
+        "startDegree": 342,
+        "endDegree": 351,
+        "company": 8
+      },
+      {
+        "index": 40,
+        "startDegree": 351,
+        "endDegree": 360,
+        "company": 8
+      }
+    ]
+  }
+}
