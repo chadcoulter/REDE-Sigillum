@@ -107,3 +107,34 @@ def assert_all_variant_citation_metadata(context):
             assert value.strip(), (
                 f"{variant_id} citation field {field} is empty"
             )
+
+
+def assert_variant_citation_field(context, field):
+    for variant_id, source in context.variant_source_metadata.items():
+        citation = source.get("citation")
+        assert isinstance(citation, dict), (
+            f"{variant_id} is missing citation metadata"
+        )
+
+        value = citation.get(field)
+        assert isinstance(value, str), (
+            f"{variant_id} citation is missing {field}"
+        )
+        assert value.strip(), (
+            f"{variant_id} citation field {field} is empty"
+        )
+
+
+@then("every historical variant retains citation author")
+def assert_all_variant_citation_authors(context):
+    assert_variant_citation_field(context, "author")
+
+
+@then("every historical variant retains citation title")
+def assert_all_variant_citation_titles(context):
+    assert_variant_citation_field(context, "title")
+
+
+@then("every historical variant retains citation container")
+def assert_all_variant_citation_containers(context):
+    assert_variant_citation_field(context, "container")
