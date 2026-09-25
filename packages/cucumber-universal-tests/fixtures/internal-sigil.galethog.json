@@ -1,0 +1,31 @@
+{
+  "sources": [
+    "https://hermetic.com/jones/in-operibus-sigillo-dei-aemeth/galethog",
+    "https://hermetic.com/_media/jdpp/secundus.pdf"
+  ],
+  "upperCircleLookup": {
+    "5": "G",
+    "24": "a",
+    "30": "l",
+    "21": "e",
+    "9": "t",
+    "14": "h"
+  },
+  "galethog": {
+    "internalElements": [
+      { "glyph": "G", "circumferenceReference": 5 },
+      { "glyph": "α", "circumferenceReference": 24 },
+      { "glyph": "l", "circumferenceReference": 30 },
+      { "glyph": "ε", "circumferenceReference": 21 },
+      { "glyph": "t", "circumferenceReference": 9 },
+      { "glyph": "h", "circumferenceReference": 14 },
+      { "glyph": "og", "circumferenceReference": null, "literal": "og" }
+    ],
+    "expectedName": "Galethog"
+  },
+  "lookupExample": {
+    "glyph": "α",
+    "circumferenceReference": 24,
+    "expectedValue": "a"
+  }
+}
