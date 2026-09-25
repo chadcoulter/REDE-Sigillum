@@ -5,7 +5,12 @@
       "label": "Spirit Action reading",
       "source": {
         "id": "jones-seal-of-gods-truth",
-        "url": "https://hermetic.com/jones/in-operibus-sigillo-dei-aemeth/the-seal-of-gods-truth"
+        "url": "https://hermetic.com/jones/in-operibus-sigillo-dei-aemeth/the-seal-of-gods-truth",
+        "citation": {
+          "author": "David Richard Jones",
+          "title": "The Seal of God's Truth",
+          "container": "Hermetic Library"
+        }
       },
       "circumferenceDivisions": {
         "22": "y15",
@@ -16,7 +21,12 @@
       "label": "Dee constructed Sigillum",
       "source": {
         "id": "jones-thrones",
-        "url": "https://hermetic.com/jones/in-operibus-sigillo-dei-aemeth/the-thrones-the-names-drawn-from-the-circumference-of-the-sigillum"
+        "url": "https://hermetic.com/jones/in-operibus-sigillo-dei-aemeth/the-thrones-the-names-drawn-from-the-circumference-of-the-sigillum",
+        "citation": {
+          "author": "David Richard Jones",
+          "title": "The Thrones: The Names Drawn from the Circumference of the Sigillum",
+          "container": "Hermetic Library"
+        }
       },
       "circumferenceDivisions": {
         "22": "y14",
