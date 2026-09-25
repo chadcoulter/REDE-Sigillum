@@ -1,0 +1,38 @@
+{
+  "circumferenceSize": 40,
+  "documentedTraversals": {
+    "G": [
+      { "symbol": "G", "number": 9, "placement": "above" },
+      { "symbol": "a", "number": 6, "placement": "above" },
+      { "symbol": "l", "number": 8, "placement": "below" },
+      { "symbol": "a", "number": 20, "placement": "above" },
+      { "symbol": "a", "number": 8, "placement": "above" },
+      { "symbol": "s", "number": null, "placement": null }
+    ]
+  },
+  "stepExamples": {
+    "above": {
+      "currentIndex": 0,
+      "number": 9,
+      "placement": "above",
+      "expectedIndex": 9
+    },
+    "below": {
+      "currentIndex": 9,
+      "number": 8,
+      "placement": "below",
+      "expectedIndex": 1
+    },
+    "termination": {
+      "symbol": "s",
+      "number": null,
+      "placement": null
+    }
+  },
+  "normalizationExamples": {
+    "duplicateVowelsAfterBeginning": {
+      "symbols": ["G", "a", "l", "a", "a", "s"],
+      "expected": "Galas"
+    }
+  }
+}
