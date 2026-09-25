@@ -6,6 +6,12 @@ Feature: Historical data set variants
     When a variant is selected
     Then the selected variant identifies its source
 
+  Scenario: Historical variants retain source citation metadata
+    Given multiple historical Sigillum data variants are available
+    When I inspect the source metadata for every historical variant
+    Then every historical variant retains its source URL
+    And every historical variant retains citation metadata
+
   Scenario Outline: Known circumference discrepancies remain variant-specific
     Given multiple historical Sigillum data variants are available
     When I inspect circumference division <division>
