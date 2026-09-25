@@ -34,6 +34,11 @@ struct World {
     correspondence_path: Option<Vec<String>>,
     correspondence_result_type: Option<String>,
     correspondence_is_direct_name_transform: bool,
+
+    provenance_fixture: Option<Value>,
+    transform_trace: Option<Vec<Value>>,
+    provenance_steps: Option<Vec<Value>>,
+    result_lineage: Option<Vec<String>>,
 }
 
 fn circumference_fixture_path() -> PathBuf {
@@ -54,6 +59,11 @@ fn sigil_fixture_path() -> PathBuf {
 fn correspondence_fixture_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../fixtures/correspondence.aaoth-aaron.json")
+}
+
+fn provenance_fixture_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../fixtures/provenance.retention.json")
 }
 
 fn load_json(path: PathBuf, description: &str) -> Value {
@@ -740,6 +750,215 @@ async fn assert_not_direct_name_transform(world: &mut World) {
     assert!(
         !world.correspondence_is_direct_name_transform,
         "correspondence path was incorrectly identified as a direct name transform"
+    );
+}
+
+#[given("a Sigillum transform is accepted")]
+async fn accepted_sigillum_transform(world: &mut World) {
+    let fixture = load_json(provenance_fixture_path(), "provenance");
+
+    let steps = fixture
+        .get("acceptedTransform")
+        .and_then(|transform| transform.get("steps"))
+        .and_then(Value::as_array)
+        .expect("acceptedTransform must contain steps")
+        .clone();
+
+    world.provenance_fixture = Some(fixture);
+    world.transform_trace = Some(steps);
+}
+
+#[when("I inspect its transform trace")]
+async fn inspect_transform_trace(world: &mut World) {
+    assert!(
+        world.transform_trace.is_some(),
+        "accepted transform trace has not been loaded"
+    );
+}
+
+#[then("every step identifies the rule that produced it")]
+async fn assert_rule_retention(world: &mut World) {
+    let trace = world
+        .transform_trace
+        .as_ref()
+        .expect("accepted transform trace has not been loaded");
+
+    for step in trace {
+        let rule = step
+            .get("rule")
+            .and_then(Value::as_str)
+            .expect("transform step is missing its rule");
+
+        assert!(
+            !rule.trim().is_empty(),
+            "transform step rule must not be empty"
+        );
+    }
+}
+
+#[then("every step identifies the source data used by that rule")]
+async fn assert_source_retention(world: &mut World) {
+    let fixture = world
+        .provenance_fixture
+        .as_ref()
+        .expect("provenance fixture has not been loaded");
+
+    let source_registry = fixture
+        .get("sourceRegistry")
+        .and_then(Value::as_object)
+        .expect("provenance fixture must contain sourceRegistry");
+
+    let trace = world
+        .transform_trace
+        .as_ref()
+        .expect("accepted transform trace has not been loaded");
+
+    for step in trace {
+        let sources = step
+            .get("sources")
+            .and_then(Value::as_array)
+            .expect("transform step is missing source references");
+
+        assert!(
+            !sources.is_empty(),
+            "transform step must retain at least one source"
+        );
+
+        for source_id in sources {
+            let source_id = source_id
+                .as_str()
+                .expect("source reference must be a string");
+
+            let source = source_registry
+                .get(source_id)
+                .unwrap_or_else(|| panic!("unknown source {source_id}"));
+
+            let url = source
+                .get("url")
+                .and_then(Value::as_str)
+                .expect("source entry must contain a URL");
+
+            assert!(
+                !url.trim().is_empty(),
+                "source URL must not be empty"
+            );
+        }
+    }
+}
+
+#[given("a result is derived through multiple transform steps")]
+async fn result_with_multiple_transform_steps(world: &mut World) {
+    let fixture = load_json(provenance_fixture_path(), "provenance");
+
+    let steps = fixture
+        .get("acceptedTransform")
+        .and_then(|transform| transform.get("steps"))
+        .and_then(Value::as_array)
+        .expect("acceptedTransform must contain steps")
+        .clone();
+
+    let lineage = fixture
+        .get("derivedResult")
+        .and_then(|result| result.get("lineage"))
+        .and_then(Value::as_array)
+        .expect("derivedResult must contain lineage")
+        .iter()
+        .map(|value| {
+            value
+                .as_str()
+                .expect("lineage entry must be a string")
+                .to_owned()
+        })
+        .collect::<Vec<_>>();
+
+    world.provenance_fixture = Some(fixture);
+    world.provenance_steps = Some(steps);
+    world.result_lineage = Some(lineage);
+}
+
+#[when("I inspect the result provenance")]
+async fn inspect_result_provenance(world: &mut World) {
+    assert!(
+        world.result_lineage.is_some(),
+        "derived result provenance has not been loaded"
+    );
+}
+
+#[then("the complete ordered transform lineage is available")]
+async fn assert_complete_ordered_lineage(world: &mut World) {
+    let mut steps = world
+        .provenance_steps
+        .as_ref()
+        .expect("provenance steps have not been loaded")
+        .clone();
+
+    steps.sort_by_key(|step| {
+        step.get("order")
+            .and_then(Value::as_i64)
+            .expect("provenance step order must be an integer")
+    });
+
+    let expected = steps
+        .iter()
+        .map(|step| {
+            step.get("id")
+                .and_then(Value::as_str)
+                .expect("provenance step must contain an id")
+                .to_owned()
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        world
+            .result_lineage
+            .as_ref()
+            .expect("result lineage has not been loaded"),
+        &expected,
+        "result lineage does not preserve transform order"
+    );
+}
+
+#[then("no earlier transform step has been erased")]
+async fn assert_no_lineage_erasure(world: &mut World) {
+    let steps = world
+        .provenance_steps
+        .as_ref()
+        .expect("provenance steps have not been loaded");
+
+    let original_ids = steps
+        .iter()
+        .map(|step| {
+            step.get("id")
+                .and_then(Value::as_str)
+                .expect("provenance step must contain an id")
+                .to_owned()
+        })
+        .collect::<Vec<_>>();
+
+    let lineage = world
+        .result_lineage
+        .as_ref()
+        .expect("result lineage has not been loaded");
+
+    assert_eq!(
+        lineage.len(),
+        original_ids.len(),
+        "one or more transform steps were erased from lineage"
+    );
+    assert_eq!(
+        lineage,
+        &original_ids,
+        "transform lineage was reordered or altered"
+    );
+
+    let mut unique = lineage.clone();
+    unique.sort();
+    unique.dedup();
+
+    assert_eq!(
+        unique.len(),
+        original_ids.len(),
+        "transform lineage contains duplicated step identifiers"
     );
 }
 
